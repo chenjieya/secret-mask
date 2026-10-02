@@ -1,12 +1,12 @@
 # Secret Mask
 
-Obsidian 插件：隐藏敏感信息（手机号、SDK、密钥等任意字符串）的中间部分，悬浮和复制时显示完整值。
+An [Obsidian](https://obsidian.md) plugin that hides the middle part of sensitive values (phone numbers, SDK IDs, API keys, and any other string). Hover to reveal the full value, and copying always yields the complete value without any Markdown formatting.
 
 ![screenshot](./images/screenshot.png)
 
-## 用法
+## Usage
 
-在笔记中用反引号包裹 `sdk:` 前缀 + 任意字符串（数字、字母、符号均可）：
+Wrap a value with the `sdk:` prefix inside inline code (backticks):
 
 ```markdown
 `sdk:17612343234`
@@ -14,7 +14,7 @@ Obsidian 插件：隐藏敏感信息（手机号、SDK、密钥等任意字符�
 `sdk:sjdlajsdlajsdlaksguoeqw`
 ```
 
-阅读视图中分别显示为：
+They are rendered in Reading view as:
 
 ```
 176****3234
@@ -22,110 +22,106 @@ sdk***************1830
 sjd****************oeqw
 ```
 
-> 值的长度若 ≤ 前几位 + 后几位之和（默认 3 + 4 = 7），会原样显示不屏蔽。
+> Values shorter than `prefix digits + suffix digits` (default `3 + 4 = 7`) are shown as-is.
 
-## 行为
+## Behavior
 
-| 场景 | 表现 |
+| Situation | Result |
 | --- | --- |
-| 阅读视图 | 显示掩码 |
-| 编辑视图（光标不在上面） | 显示掩码 |
-| 编辑视图（点进去） | 自动还原源码，可正常编辑 |
-| 悬浮 | 显示完整值 |
-| 复制 | 只复制纯文本，值完整，不带格式 |
+| Reading view | Shows the masked value |
+| Live Preview (cursor not on the value) | Shows the masked value |
+| Live Preview (click into the value) | Reveals the source so you can edit it normally |
+| Hover | Shows the full value in a tooltip |
+| Copy | Copies plain text only, full value, no formatting |
 
-## 设置
+## Settings
 
-- **Prefix digits**：前面显示的位数（默认 3）
-- **Suffix digits**：后面显示的位数（默认 4）
-- **Mask character**：掩码字符（默认 `*`）
+- **Prefix digits**: how many characters to show at the front (default `3`)
+- **Suffix digits**: how many characters to show at the end (default `4`)
+- **Mask character**: the character used to mask (default `*`)
 
-## 开发
+## Development
 
 ```bash
 npm install
-npm run dev    # 开发模式（watch，改完自动构建 main.js）
-npm run build  # 生产构建（含类型检查）
+npm run dev    # watch mode: rebuilds main.js on change
+npm run build  # production build (includes type check)
 ```
 
-把本仓库软链到仓库的插件目录即可调试（**目录名必须与 `manifest.json` 的 `id` 一致**）：
+Symlink this repository into your vault's plugin folder for testing. The folder name **must match the `id` in `manifest.json`**:
 
 ```bash
 ln -s "$PWD" "/path/to/vault/.obsidian/plugins/secret-mask"
 ```
 
-改完后在 Obsidian 里重载插件；也可安装社区插件 **Hot Reload** 自动重载。
+Then reload the plugin in Obsidian. You can also install the community plugin **Hot Reload** to reload automatically.
 
-## 文件说明
+## Project files
 
-- `main.ts`：插件逻辑
-- `manifest.json`：插件元数据（id / 版本 / 最低支持版本等）
-- `versions.json`：版本与最低 App 版本映射，Obsidian 更新时用
-- `esbuild.config.mjs`：构建脚本
-- `.github/workflows/release.yml`：打 tag 后自动构建 + 发 Release
+- `main.ts`: plugin logic
+- `manifest.json`: plugin metadata (id, version, min app version, ...)
+- `versions.json`: version to minimum app version mapping
+- `esbuild.config.mjs`: build script
+- `.github/workflows/release.yml`: builds and creates a release when a tag is pushed
 
-## 发布到 Obsidian 插件市场
+## Releasing to the Obsidian community directory
 
-插件由官方社区目录 [community.obsidian.md](https://community.obsidian.md) 收录；用户安装时，Obsidian 会从**你的 GitHub Release 资产**里拉取 `main.js` / `manifest.json` / `styles.css`。
+The plugin is listed in the official directory at [community.obsidian.md](https://community.obsidian.md). When a user installs it, Obsidian downloads `main.js`, `manifest.json`, and `styles.css` from **your GitHub Release assets**.
 
-### 一、发布前的准备
+### Before you begin
 
-1. 代码推到一个**公开**的 GitHub 仓库。
-2. `manifest.json` 字段要写全，`version` 用语义化版本。
-3. 仓库里保留 `README.md`、`LICENSE`。
-4. Release 资产必须是这三个文件（文件名精确匹配，不要只放 zip）：
+1. Push the code to a **public** GitHub repository.
+2. Keep a `README.md` (in English) and a `LICENSE` at the repository root.
+3. Fill in `manifest.json`, using a semantic `version`.
+4. Each release must attach these files as individual assets (exact filenames, not only a zip):
    - `main.js`
    - `manifest.json`
-   - `styles.css`（没有样式可省略）
+   - `styles.css` (optional if the plugin has no styles)
 
-### 二、自动化发版（本仓库已配置）
+### Automated release (already configured)
 
-流程：本地打 tag → push → GitHub Actions 自动构建并创建 Release。
+The flow is: create a tag locally, push it, and GitHub Actions builds and publishes the release.
 
 ```bash
-# 1. 改版本号：同时改 manifest.json 和 package.json 的 version
-# 2. 打 tag（tag 名要与 manifest.json 的 version 一致，推荐不带 v）
-git tag 1.0.0
-git push origin 1.0.0
+# 1. Bump the version in manifest.json and package.json
+# 2. Create a tag that matches the manifest version (no "v" prefix recommended)
+git tag 1.0.2
+git push origin 1.0.2
 ```
 
-推送 tag 后，`.github/workflows/release.yml` 会：
-1. `npm install && npm run build`
-2. 创建对应 tag 的 Release
-3. 把 `main.js`、`manifest.json`、`styles.css` 作为资产上传
+Pushing the tag triggers `.github/workflows/release.yml`, which:
+1. runs `npm install && npm run build`
+2. attests build provenance for the assets
+3. creates a GitHub Release for that tag with `main.js`, `manifest.json`, and `styles.css` attached
 
-> 也可以直接用 GitHub 网页手动创建 Release 并拖入这三个文件。
+### Submit to the directory (one time)
 
-### 三、提交到插件市场（一次性）
+1. Sign in at <https://community.obsidian.md> with your Obsidian account.
+2. Link your GitHub account to your profile.
+3. Make sure the `manifest.json` on the default branch HEAD is correct and committed, and that the matching GitHub Release exists.
+4. Add your plugin in the directory and select your repository.
+5. Address the automated and manual review feedback; fix issues by publishing a **new, incremented version**.
 
-通过官方社区目录提交：
+### Updating later
 
-1. 注册并登录 <https://community.obsidian.md>（用 Obsidian 账号）。
-2. 在个人资料里绑定 GitHub 账号，用于验证仓库归属。
-3. 确保默认分支 HEAD 上的 `manifest.json` 正确且已提交，并且对应的 GitHub Release 已创建。
-4. 在目录里「添加插件」，选择你的仓库地址。
-5. 官方自动审核 + 人工审核，按提示修改；需要改动就用**递增的新版本号**重新发 Release。
+Repeat the automated release step: bump the version, push a new tag. The directory picks up the latest release automatically, and users receive an update. No resubmission is needed.
 
-前提：仓库 public，根目录有 `README.md` 和 `LICENSE`，`manifest.json` 的 `id` 全局唯一且不能包含 `obsidian`。
+## Checklist
 
-### 四、截图
+- [ ] Repository is public; root has `README.md` (English) and `LICENSE`
+- [ ] `manifest.json` `id` is unique and does not contain `obsidian`
+- [ ] Release tag equals the `version` in `manifest.json`
+- [ ] Release assets include `main.js` and `manifest.json` (plus `styles.css` if present)
+- [ ] `main.js` is a build artifact (do not commit TypeScript source as the artifact)
 
-插件列表页会渲染你仓库的 README，相对路径图片会被自动解析到仓库文件。截图**不是硬性要求**，但强烈建议加，用户才能直观看到效果：
+## 中文说明
 
-```markdown
-![screenshot](./images/screenshot.png)
-```
+本插件用于隐藏敏感值（手机号、SDK、密钥等任意字符串）的中间部分，悬浮和复制时显示完整值。
 
-把图片放到仓库 `images/` 目录（建议 1~2 张，宽度控制在 ~1000px）。
+- 用法：用反引号包裹 `sdk:` 前缀 + 值，例如 `` `sdk:17612343234` ``
+- 阅读视图显示掩码；编辑视图光标移开显示掩码，点进去自动还原源码可编辑
+- 复制只得到纯文本，值完整、不带 Markdown 格式
+- 设置项：前缀位数（默认 3）、后缀位数（默认 4）、掩码字符（默认 `*`）
+- 值长度 ≤ 前几位 + 后几位之和（默认 7）时不屏蔽
 
-### 五、后续更新版本
-
-只需重复「二、自动化发版」：改版本号 → 打新 tag → push。市场会自动读取最新 Release，用户端收到更新提示，无需重新提交。
-
-## 校验清单
-
-- [ ] 仓库为 public，根目录有 `README.md` 和 `LICENSE`
-- [ ] `manifest.json` 的 `id` 全局唯一，不含 `obsidian`
-- [ ] Release tag == `manifest.json` 的 `version`
-- [ ] Release 资产含 `main.js`、`manifest.json`（有样式再加 `styles.css`）
-- [ ] `main.js` 是构建产物（不要提交源码 TS 当产物）
+发布：改版本号 → `git tag <版本>` → `git push origin <版本>`，CI 自动构建、attest 并发布 Release。
