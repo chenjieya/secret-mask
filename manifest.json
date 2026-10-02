@@ -5,5 +5,6 @@
     "minAppVersion": "1.0.0",
     "description": "Mask the middle of sensitive values (phone numbers, SDK keys, etc). Shows the full value on hover and copy.",
     "author": "jie.chen",
+    "authorUrl": "https://github.com/chenjieya",
     "isDesktopOnly": false
 }
