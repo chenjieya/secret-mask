@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS: SecretMaskSettings = {
     maskChar: '*'
 };
 
-const CODE_REGEX = /^`?sdk:(\d+)`?$/;
+const CODE_REGEX = /^sdk:(.+)$/;
 
 function maskValue(value: string, settings: SecretMaskSettings): string {
     const { prefixDigits, suffixDigits, maskChar } = settings;
@@ -131,7 +131,7 @@ export default class SecretMaskPlugin extends Plugin {
 
                 for (const { from, to } of view.visibleRanges) {
                     const text = view.state.doc.sliceString(from, to);
-                    const regex = /`sdk:(\d+)`/g;
+                    const regex = /`sdk:([^`]+)`/g;
                     let match;
                     while ((match = regex.exec(text)) !== null) {
                         const fullNumber = match[1];
@@ -234,7 +234,7 @@ export default class SecretMaskPlugin extends Plugin {
         if (!plainText.replace(/\s/g, '')) {
             const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
             const src = mdView?.editor?.getSelection?.() ?? '';
-            const replaced = src.replace(/`sdk:(\d+)`/g, '$1');
+            const replaced = src.replace(/`sdk:([^`]+)`/g, '$1');
             if (replaced !== src) plainText = replaced;
         }
 
