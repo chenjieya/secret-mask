@@ -1,6 +1,6 @@
 {
     "name": "secret-mask",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Obsidian plugin that masks the middle of sensitive values (phone numbers, SDK keys, etc)",
     "main": "main.js",
     "scripts": {
