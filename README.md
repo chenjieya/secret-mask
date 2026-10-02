@@ -85,8 +85,8 @@ The flow is: create a tag locally, push it, and GitHub Actions builds and publis
 ```bash
 # 1. Bump the version in manifest.json and package.json
 # 2. Create a tag that matches the manifest version (no "v" prefix recommended)
-git tag 1.0.2
-git push origin 1.0.2
+git tag 1.0.3
+git push origin 1.0.3
 ```
 
 Pushing the tag triggers `.github/workflows/release.yml`, which:

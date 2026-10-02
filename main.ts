@@ -1,4 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting, MarkdownPostProcessorContext, MarkdownView } from 'obsidian';
+import type { SettingDefinitionItem } from 'obsidian';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
 
@@ -36,8 +37,7 @@ class MaskWidget extends WidgetType {
     }
 
     toDOM(): HTMLElement {
-        const span = document.createElement('span');
-        span.className = 'secret-mask';
+        const span = createSpan('secret-mask');
         span.textContent = this.masked;
         span.setAttribute('data-full-number', this.full);
         return span;
@@ -77,7 +77,8 @@ export default class SecretMaskPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        const data = (await this.loadData()) as Partial<SecretMaskSettings> | null;
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
     }
 
     async saveSettings() {
@@ -94,8 +95,7 @@ export default class SecretMaskPlugin extends Plugin {
             const fullNumber = match[1];
             const masked = maskValue(fullNumber, this.settings);
 
-            const span = document.createElement('span');
-            span.className = 'secret-mask';
+            const span = createSpan('secret-mask');
             span.textContent = masked;
             span.setAttribute('data-full-number', fullNumber);
             code.replaceWith(span);
@@ -103,7 +103,7 @@ export default class SecretMaskPlugin extends Plugin {
     }
 
     buildLivePreviewPlugin() {
-        const plugin = this;
+        const mask = (value: string) => maskValue(value, this.settings);
 
         return ViewPlugin.fromClass(class {
             decorations: DecorationSet;
@@ -140,7 +140,7 @@ export default class SecretMaskPlugin extends Plugin {
                         if (overlapsSelection(start, end)) continue;
                         decorations.push(
                             Decoration.replace({
-                                widget: new MaskWidget(maskValue(fullNumber, plugin.settings), fullNumber)
+                                widget: new MaskWidget(mask(fullNumber), fullNumber)
                             }).range(start, end)
                         );
                     }
@@ -178,21 +178,13 @@ export default class SecretMaskPlugin extends Plugin {
 
     showTooltip(e: MouseEvent, text: string) {
         this.hideTooltip();
-        const tooltip = document.createElement('div');
-        tooltip.className = 'secret-mask-tooltip';
+        const tooltip = createDiv('secret-mask-tooltip');
         tooltip.id = 'secret-mask-tooltip';
         tooltip.textContent = text;
-        tooltip.style.position = 'fixed';
-        tooltip.style.left = `${e.clientX}px`;
-        tooltip.style.top = `${e.clientY - 30}px`;
-        tooltip.style.background = 'var(--background-primary)';
-        tooltip.style.color = 'var(--text-normal)';
-        tooltip.style.padding = '4px 8px';
-        tooltip.style.borderRadius = '4px';
-        tooltip.style.border = '1px solid var(--background-modifier-border)';
-        tooltip.style.zIndex = '1000';
-        tooltip.style.pointerEvents = 'none';
-        tooltip.style.fontSize = 'var(--font-small)';
+        tooltip.setCssProps({
+            left: `${e.clientX}px`,
+            top: `${e.clientY - 30}px`
+        });
         document.body.appendChild(tooltip);
     }
 
@@ -201,51 +193,43 @@ export default class SecretMaskPlugin extends Plugin {
         if (tooltip) tooltip.remove();
     }
 
-    getMaskedSpansInRange(range: Range): HTMLElement[] {
-        const result: HTMLElement[] = [];
-        document.querySelectorAll('.secret-mask').forEach(el => {
-            try {
-                if (range.intersectsNode(el)) result.push(el as HTMLElement);
-            } catch (err) {
-                // ignore
-            }
-        });
-        return result;
-    }
-
     handleCopy = (e: ClipboardEvent) => {
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
 
         const range = selection.getRangeAt(0);
-        const spans = this.getMaskedSpansInRange(range);
-        if (spans.length === 0) return;
+        let plainText = selection.toString();
+        let hadMask = false;
 
-        const saved = spans.map(el => el.textContent || '');
-        spans.forEach(el => {
+        // Reading view: swap every masked value that is part of the selection
+        // back to its full value. (The masked span may not be present in the
+        // cloned range, so replace against the selected text instead.)
+        document.querySelectorAll('.secret-mask').forEach(el => {
+            const maskedText = el.textContent || '';
             const full = el.getAttribute('data-full-number');
-            if (full) el.textContent = full;
+            if (!maskedText || !full || !range.intersectsNode(el)) return;
+            if (plainText.includes(maskedText)) {
+                plainText = plainText.split(maskedText).join(full);
+                hadMask = true;
+            }
         });
 
-        let plainText = selection.toString();
-
-        // Live preview: browser selection over an atomic widget can be empty.
-        // Fall back to the CodeMirror source selection.
-        if (!plainText.replace(/\s/g, '')) {
-            const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
-            const src = mdView?.editor?.getSelection?.() ?? '';
-            const replaced = src.replace(/`sdk:([^`]+)`/g, '$1');
-            if (replaced !== src) plainText = replaced;
+        // Live preview: the DOM selection over atomic widgets is unreliable.
+        // Prefer the CodeMirror source selection when it has the wrapper or the
+        // selection came back empty.
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const editorSelection = mdView?.editor?.getSelection?.() ?? '';
+        if (editorSelection && (/`sdk:[^`]+`/.test(editorSelection) || !plainText.replace(/\s/g, ''))) {
+            plainText = editorSelection;
         }
 
-        if (e.clipboardData && plainText.replace(/\s/g, '')) {
+        const hasWrapper = /`sdk:[^`]+`/.test(plainText);
+        const cleaned = plainText.replace(/`sdk:([^`]+)`/g, '$1');
+
+        if (e.clipboardData && cleaned.length && (hadMask || hasWrapper)) {
             e.preventDefault();
-            e.clipboardData.setData('text/plain', plainText);
+            e.clipboardData.setData('text/plain', cleaned);
         }
-
-        setTimeout(() => {
-            spans.forEach((el, i) => { el.textContent = saved[i]; });
-        }, 0);
     };
 }
 
@@ -257,11 +241,45 @@ class SecretMaskSettingTab extends PluginSettingTab {
         this.plugin = plugin;
     }
 
+    getSettingDefinitions(): SettingDefinitionItem[] {
+        return [
+            {
+                name: 'Prefix digits',
+                desc: 'Number of characters to show at the beginning.',
+                control: {
+                    type: 'number',
+                    key: 'prefixDigits',
+                    defaultValue: DEFAULT_SETTINGS.prefixDigits,
+                    min: 0,
+                    step: 1
+                }
+            },
+            {
+                name: 'Suffix digits',
+                desc: 'Number of characters to show at the end.',
+                control: {
+                    type: 'number',
+                    key: 'suffixDigits',
+                    defaultValue: DEFAULT_SETTINGS.suffixDigits,
+                    min: 0,
+                    step: 1
+                }
+            },
+            {
+                name: 'Mask character',
+                desc: 'Character used to mask the middle part.',
+                control: {
+                    type: 'text',
+                    key: 'maskChar',
+                    defaultValue: DEFAULT_SETTINGS.maskChar
+                }
+            }
+        ];
+    }
+
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
-
-        containerEl.createEl('h2', { text: 'Secret Mask Settings' });
 
         new Setting(containerEl)
             .setName('Prefix digits')

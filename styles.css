@@ -4,5 +4,14 @@
 }
 
 .secret-mask-tooltip {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-small);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
