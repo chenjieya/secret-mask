@@ -1,16 +1,28 @@
 # Secret Mask
 
-Obsidian 插件：隐藏敏感信息（手机号、SDK、密钥等数字串）中间几位，悬浮和复制时显示完整值。
+Obsidian 插件：隐藏敏感信息（手机号、SDK、密钥等任意字符串）的中间部分，悬浮和复制时显示完整值。
+
+![screenshot](./images/screenshot.png)
 
 ## 用法
 
-在笔记中用反引号包裹 `sdk:` 前缀 + 数字：
+在笔记中用反引号包裹 `sdk:` 前缀 + 任意字符串（数字、字母、符号均可）：
 
 ```markdown
 `sdk:17612343234`
+`sdk:sdk-126392739183102830`
+`sdk:sjdlajsdlajsdlaksguoeqw`
 ```
 
-阅读视图显示为 `176****3234`。
+阅读视图中分别显示为：
+
+```
+176****3234
+sdk***************1830
+sjd****************oeqw
+```
+
+> 值的长度若 ≤ 前几位 + 后几位之和（默认 3 + 4 = 7），会原样显示不屏蔽。
 
 ## 行为
 
@@ -54,7 +66,7 @@ ln -s "$PWD" "/path/to/vault/.obsidian/plugins/secret-mask"
 
 ## 发布到 Obsidian 插件市场
 
-社区插件市场本质是一个 GitHub 仓库 [`obsidianmd/obsidian-releases`](https://github.com/obsidianmd/obsidian-releases)，官方从**你的 GitHub Release 资产**里拉取 `main.js` / `manifest.json` / `styles.css`。
+插件由官方社区目录 [community.obsidian.md](https://community.obsidian.md) 收录；用户安装时，Obsidian 会从**你的 GitHub Release 资产**里拉取 `main.js` / `manifest.json` / `styles.css`。
 
 ### 一、发布前的准备
 
@@ -86,28 +98,34 @@ git push origin 1.0.0
 
 ### 三、提交到插件市场（一次性）
 
-1. Fork `obsidianmd/obsidian-releases`。
-2. 编辑仓库根目录的 `community-plugins.json`，把你的插件 `id`（这里是 `secret-mask`）加到数组中：
+通过官方社区目录提交：
 
-   ```json
-   [
-     "...existing ids...",
-     "secret-mask"
-   ]
-   ```
+1. 注册并登录 <https://community.obsidian.md>（用 Obsidian 账号）。
+2. 在个人资料里绑定 GitHub 账号，用于验证仓库归属。
+3. 确保默认分支 HEAD 上的 `manifest.json` 正确且已提交，并且对应的 GitHub Release 已创建。
+4. 在目录里「添加插件」，选择你的仓库地址。
+5. 官方自动审核 + 人工审核，按提示修改；需要改动就用**递增的新版本号**重新发 Release。
 
-3. 向该仓库的 `master` 分支提交 Pull Request。
-4. 官方会自动校验（会检查 manifest、Release 资产、tag 与版本是否一致等），通过后人工审核合并。
-5. 合并后，用户在 Obsidian 的「社区插件 → 浏览」里即可搜索到并安装。
+前提：仓库 public，根目录有 `README.md` 和 `LICENSE`，`manifest.json` 的 `id` 全局唯一且不能包含 `obsidian`。
 
-### 四、后续更新版本
+### 四、截图
 
-只需重复「二、自动化发版」：改版本号 → 打新 tag → push。市场的插件页会自动读取最新 Release，用户端会收到更新提示。无需再提 PR。
+插件列表页会渲染你仓库的 README，相对路径图片会被自动解析到仓库文件。截图**不是硬性要求**，但强烈建议加，用户才能直观看到效果：
+
+```markdown
+![screenshot](./images/screenshot.png)
+```
+
+把图片放到仓库 `images/` 目录（建议 1~2 张，宽度控制在 ~1000px）。
+
+### 五、后续更新版本
+
+只需重复「二、自动化发版」：改版本号 → 打新 tag → push。市场会自动读取最新 Release，用户端收到更新提示，无需重新提交。
 
 ## 校验清单
 
-- [ ] 仓库为 public
-- [ ] `manifest.json` 的 `id` 与仓库目录/插件一致，且未被占用
+- [ ] 仓库为 public，根目录有 `README.md` 和 `LICENSE`
+- [ ] `manifest.json` 的 `id` 全局唯一，不含 `obsidian`
 - [ ] Release tag == `manifest.json` 的 `version`
 - [ ] Release 资产含 `main.js`、`manifest.json`（有样式再加 `styles.css`）
 - [ ] `main.js` 是构建产物（不要提交源码 TS 当产物）
